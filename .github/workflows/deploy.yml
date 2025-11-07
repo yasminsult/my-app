@@ -32,4 +32,4 @@ jobs:
 
       - name: Deploy to Kubernetes
         run: |
-          kubectl set image deployment/my-app-deploy my-app-container=${{ secrets.DOCKERHUB_USERNAME }}/my-app:latest
+          kubectl set image deployment/my-app-deploy my-app-container=${{ secrets.DOCKER_USERNAME }}/my-app:latest
