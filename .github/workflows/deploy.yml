@@ -34,11 +34,11 @@ jobs:
         with:
           version: 'latest'
 
-      # 5️⃣ Configure kubeconfig directly from multi-line secret
+      # 5️⃣ Configure kubeconfig safely (base64)
       - name: Configure kubeconfig
         run: |
           mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBE_CONFIG_DATA }}" > $HOME/.kube/config
+          echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > $HOME/.kube/config
 
       # 6️⃣ Verify Kubernetes connection
       - name: Verify Kubernetes connection
