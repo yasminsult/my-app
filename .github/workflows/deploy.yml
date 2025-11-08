@@ -47,13 +47,13 @@ jobs:
       # 7️⃣ Deploy to Kubernetes safely
       - name: Deploy to Kubernetes
         run: |
-          # Update the deployment image; ignore exit code if image is unchanged
+          # Update deployment image; ignore exit code if image unchanged
           kubectl set image deployment/my-app-deploy my-app-container=${{ secrets.DOCKER_USERNAME }}/my-app:latest || true
 
-          # Wait for rollout, ignore timeout/failure
+          # Wait for rollout; ignore timeout/failure
           kubectl rollout status deployment/my-app-deploy --timeout=2m || echo "Rollout finished or timed out"
 
-      # 8️⃣ Optional debug (if workflow still fails)
+      # 8️⃣ Optional debug step
       - name: Debug Deployment (Optional)
         if: failure()
         run: |
