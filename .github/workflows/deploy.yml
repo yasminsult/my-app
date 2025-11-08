@@ -34,11 +34,11 @@ jobs:
         with:
           version: 'latest'
 
-      # 5️⃣ Configure kubeconfig from secret
+      # 5️⃣ Configure kubeconfig directly from multi-line secret
       - name: Configure kubeconfig
         run: |
           mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > $HOME/.kube/config
+          echo "${{ secrets.KUBE_CONFIG_DATA }}" > $HOME/.kube/config
 
       # 6️⃣ Verify Kubernetes connection
       - name: Verify Kubernetes connection
@@ -47,10 +47,7 @@ jobs:
       # 7️⃣ Deploy to Kubernetes safely
       - name: Deploy to Kubernetes
         run: |
-          # Update deployment image; ignore exit code if image unchanged
           kubectl set image deployment/my-app-deploy my-app-container=${{ secrets.DOCKER_USERNAME }}/my-app:latest || true
-
-          # Wait for rollout; ignore timeout/failure
           kubectl rollout status deployment/my-app-deploy --timeout=2m || echo "Rollout finished or timed out"
 
       # 8️⃣ Optional debug step
