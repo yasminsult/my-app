@@ -1,59 +1,50 @@
-name: CI/CD Pipeline
+name: CI/CD Pipeline - EC2 + Docker + K8s + Lambda Notify
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - main
+      - master
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
       # 1️⃣ Checkout code
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Login to Docker Hub
-      - name: Login to Docker Hub
+      # 2️⃣ Login to DockerHub
+      - name: Docker login
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PAT }}
 
       # 3️⃣ Build and push Docker image
-      - name: Build and push image
-        uses: docker/build-push-action@v6
+      - name: Build and push Docker image
+        run: |
+          IMAGE=${{ secrets.DOCKER_USERNAME }}/my-app:latest
+          docker build -t $IMAGE .
+          docker push $IMAGE
+
+      # 4️⃣ SSH into EC2 master node and update Kubernetes deployment
+      - name: Deploy on EC2 Kubernetes cluster
+        uses: appleboy/ssh-action@v1.1.0
         with:
-          context: .
-          push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/my-app:latest
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            echo "🔄 Updating Kubernetes deployment..."
+            kubectl set image deployment/my-app-deploy my-app-container=${{ secrets.DOCKER_USERNAME }}/my-app:latest
+            kubectl rollout status deployment/my-app-deploy
+            echo "✅ Kubernetes deployment updated successfully."
 
-      # 4️⃣ Set up kubectl
-      - name: Set up kubectl
-        uses: azure/setup-kubectl@v4
-        with:
-          version: 'latest'
-
-      # 5️⃣ Configure kubeconfig safely (base64)
-      - name: Configure kubeconfig
+      # 5️⃣ Notify AWS Lambda via API Gateway
+      - name: Notify Lambda of deployment
         run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > $HOME/.kube/config
-
-      # 6️⃣ Verify Kubernetes connection
-      - name: Verify Kubernetes connection
-        run: kubectl get nodes
-
-      # 7️⃣ Deploy to Kubernetes safely
-      - name: Deploy to Kubernetes
-        run: |
-          kubectl set image deployment/my-app-deploy my-app-container=${{ secrets.DOCKER_USERNAME }}/my-app:latest || true
-          kubectl rollout status deployment/my-app-deploy --timeout=2m || echo "Rollout finished or timed out"
-
-      # 8️⃣ Optional debug step
-      - name: Debug Deployment (Optional)
-        if: failure()
-        run: |
-          set -x
-          kubectl get deployments
-          kubectl get pods -o wide
+          curl -X POST -H "Content-Type: application/json" \
+          -d "{\"message\": \"🚀 New deployment completed successfully on $(date)\"}" \
+          ${{ secrets.LAMDA_API_URL }}
