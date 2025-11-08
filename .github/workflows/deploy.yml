@@ -30,6 +30,17 @@ jobs:
         with:
           version: 'latest'
 
+      # 👇 This step is critical — it creates your kubeconfig file from the secret
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > $HOME/.kube/config
+
+      # Optional: verify connection
+      - name: Verify Kubernetes connection
+        run: kubectl get nodes
+
       - name: Deploy to Kubernetes
         run: |
           kubectl set image deployment/my-app-deploy my-app-container=${{ secrets.DOCKER_USERNAME }}/my-app:latest
+          kubectl rollout status deployment/my-app-deploy
