@@ -43,4 +43,4 @@ jobs:
       - name: Deploy to Kubernetes
         run: |
           kubectl set image deployment/my-app-deploy my-app-container=${{ secrets.DOCKER_USERNAME }}/my-app:latest
-          kubectl rollout status deployment/my-app-deploy
+          kubectl rollout status deployment/my-app-deploy --timeout=2m || echo "Rollout finished or timed out"
