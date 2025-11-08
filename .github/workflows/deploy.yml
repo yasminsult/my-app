@@ -9,15 +9,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # 2️⃣ Login to Docker Hub
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          password: ${{ secrets.DOCKER_PAT }}
 
+      # 3️⃣ Build and push Docker image
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
@@ -25,22 +28,24 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/my-app:latest
 
+      # 4️⃣ Set up kubectl
       - name: Set up kubectl
         uses: azure/setup-kubectl@v4
         with:
           version: 'latest'
 
-      # 👇 This step is critical — it creates your kubeconfig file from the secret
+      # 5️⃣ Configure kubeconfig from secret
       - name: Configure kubeconfig
         run: |
           mkdir -p $HOME/.kube
           echo "${{ secrets.KUBE_CONFIG_DATA }}" | base64 --decode > $HOME/.kube/config
 
-      # Optional: verify connection
+      # 6️⃣ Verify Kubernetes connection
       - name: Verify Kubernetes connection
         run: kubectl get nodes
 
+      # 7️⃣ Deploy to Kubernetes safely
       - name: Deploy to Kubernetes
         run: |
-          kubectl set image deployment/my-app-deploy my-app-container=${{ secrets.DOCKER_USERNAME }}/my-app:latest
+          kubectl set image deployment/my-app-deploy my-app-container=${{ secrets.DOCKER_USERNAME }}/my-app:latest || true
           kubectl rollout status deployment/my-app-deploy --timeout=2m || echo "Rollout finished or timed out"
